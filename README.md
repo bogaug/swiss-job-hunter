@@ -1,6 +1,6 @@
 # 🇨🇭 Swiss Job Hunter
 
-**Streamlit app per cercare offerte di lavoro in Svizzera, generare lettere di motivazione con AI e tracciare le candidature.**
+**A Streamlit app to search for jobs in Switzerland, generate AI-powered cover letters, and track your applications.**
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-red)
@@ -9,29 +9,29 @@
 
 ---
 
-## ✨ Funzionalità
+## ✨ Features
 
-| Feature | Dettaglio |
+| Feature | Description |
 |---|---|
-| 🔍 **Ricerca offerte** | Scraping su `jobs.ch` e `jobup.ch` per regione svizzera |
-| 🤖 **Lettera AI** | Generazione lettera di motivazione personalizzata con Claude |
-| 📧 **Invio email** | Invio automatico via SMTP (Gmail, Outlook, Proton Mail…) |
-| 📊 **Dashboard** | Tracking candidature con stati, cronologia e grafici |
-| 🌍 **Multilingua** | Lettere in Francese, Italiano, Inglese, Tedesco |
-| ⬇️ **Export CSV** | Esporta le tue candidature per analisi esterne |
+| 🔍 **Job Search** | Scrapes `jobs.ch` and `jobup.ch` filtered by Swiss region |
+| 🤖 **AI Cover Letter** | Generates a personalized cover letter using Claude (Anthropic) |
+| 📧 **Email Sending** | Sends applications automatically via SMTP (Gmail, Outlook, Proton Mail…) |
+| 📊 **Dashboard** | Tracks all applications with statuses, history timeline, and charts |
+| 🌍 **Multilingual** | Cover letters in French, Italian, English, or German |
+| ⬇️ **CSV Export** | Export your applications for external analysis |
 
 ---
 
-## 🚀 Avvio rapido
+## 🚀 Quick Start
 
-### 1. Clona il repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/bogaug/swiss-job-hunter.git
 cd swiss-job-hunter
 ```
 
-### 2. Crea ambiente virtuale e installa dipendenze
+### 2. Create a virtual environment and install dependencies
 
 ```bash
 python -m venv .venv
@@ -41,47 +41,47 @@ source .venv/bin/activate   # macOS / Linux
 pip install -r requirements.txt
 ```
 
-### 3. Configura le variabili d'ambiente
+### 3. Configure environment variables
 
 ```bash
 cp .env.example .env
-# Modifica .env con il tuo editor preferito
+# Edit .env with your preferred editor
 ```
 
-Variabili necessarie:
+Required variables:
 
-| Variabile | Descrizione |
+| Variable | Description |
 |---|---|
-| `ANTHROPIC_API_KEY` | Key da [console.anthropic.com](https://console.anthropic.com) |
-| `CANDIDATE_NAME` | Il tuo nome completo |
-| `CANDIDATE_EMAIL` | La tua email |
-| `SMTP_USER` | Email mittente |
-| `SMTP_PASSWORD` | App Password SMTP |
+| `ANTHROPIC_API_KEY` | Get yours at [console.anthropic.com](https://console.anthropic.com) |
+| `CANDIDATE_NAME` | Your full name |
+| `CANDIDATE_EMAIL` | Your email address |
+| `SMTP_USER` | Sender email address |
+| `SMTP_PASSWORD` | SMTP App Password |
 
-> **Gmail:** vai su [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) per generare un'App Password (richiede 2FA attivo).
+> **Gmail users:** generate an App Password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) (requires 2FA to be enabled).
 
-### 4. Avvia l'app
+### 4. Run the app
 
 ```bash
 streamlit run app.py
 ```
 
-L'app si aprirà automaticamente su `http://localhost:8501`.
+The app will open automatically at `http://localhost:8501`.
 
 ---
 
-## 📁 Struttura progetto
+## 📁 Project Structure
 
 ```
 swiss-job-hunter/
-├── app.py                  # App principale Streamlit
+├── app.py                  # Main Streamlit application
 ├── modules/
 │   ├── __init__.py
-│   ├── scraper.py          # Scraping jobs.ch / jobup.ch
-│   ├── ai_generator.py     # Generazione lettere con Claude
-│   ├── email_sender.py     # Invio SMTP
-│   └── tracker.py          # Database SQLite candidature
-├── data/                   # Database SQLite (gitignored)
+│   ├── scraper.py          # Scraping logic for jobs.ch / jobup.ch
+│   ├── ai_generator.py     # Cover letter generation with Claude
+│   ├── email_sender.py     # SMTP email sending
+│   └── tracker.py          # SQLite application tracker
+├── data/                   # Local SQLite database (gitignored)
 ├── requirements.txt
 ├── .env.example
 ├── .gitignore
@@ -90,69 +90,69 @@ swiss-job-hunter/
 
 ---
 
-## 🔍 Scraping — Note tecniche
+## 🔍 Scraping — Technical Notes
 
-Il scraper prova le seguenti strategie in ordine:
+The scraper attempts the following strategies in order:
 
-1. **API interna** — endpoint JSON nativo del sito
-2. **`__NEXT_DATA__`** — estrazione dati da tag `<script id="__NEXT_DATA__">` (siti Next.js)
-3. **HTML parsing** — CSS selectors con BeautifulSoup
+1. **Internal API** — native JSON endpoint of the job site
+2. **`__NEXT_DATA__`** — extracts data from the `<script id="__NEXT_DATA__">` tag (Next.js sites)
+3. **HTML parsing** — CSS selectors with BeautifulSoup
 
-> ⚠️ **Nota:** `jobs.ch` e `jobup.ch` possono implementare protezioni anti-bot. Se la ricerca non produce risultati, incolla manualmente il testo dell'offerta nella tab "Dettagli Offerta" — tutte le altre funzionalità (generazione AI, invio, tracking) funzionano perfettamente lo stesso.
+> ⚠️ **Note:** `jobs.ch` and `jobup.ch` may implement anti-bot protections. If the search returns no results, paste the job description manually in the "Job Details" tab — all other features (AI generation, email sending, tracking) work perfectly regardless.
 
-**Regioni supportate:**
+**Supported regions:**
 
-- Svizzera Romanda (FR/GE/VD/VS/NE/JU)
+- Romandy / Suisse Romande (FR/GE/VD/VS/NE/JU)
 - Ticino (TI)
-- Zurigo (ZH)
-- Berna (BE)
-- Basilea (BS/BL)
-- Svizzera Centrale
-- Svizzera Orientale
-- Tutta la Svizzera
+- Zurich (ZH)
+- Bern (BE)
+- Basel (BS/BL)
+- Central Switzerland
+- Eastern Switzerland
+- All of Switzerland
 
 ---
 
-## 🤖 Generazione lettera con AI
+## 🤖 AI Cover Letter Generation
 
-La lettera viene generata da **Claude** (Anthropic) seguendo le convenzioni epistolari svizzere. Il prompt include:
+Letters are generated by **Claude** (Anthropic) following Swiss epistolary conventions. The prompt includes:
 
-- Titolo posizione e azienda
-- Descrizione dell'offerta (se fornita — altamente consigliato)
-- Il tuo profilo (skills, formazione, esperienze)
-- Note personalizzate (opzionale)
+- Job title and company name
+- Job description (optional but strongly recommended for best results)
+- Your candidate profile (skills, education, experience)
+- Custom instructions (optional)
 
-**Modelli disponibili:**
-- `claude-opus-4-5` — qualità massima (consigliato per candidature importanti)
-- `claude-sonnet-4-6` — ottimo equilibrio qualità/costo
-- `claude-haiku-4-5` — veloce ed economico
+**Available models:**
+- `claude-opus-4-5` — maximum quality (recommended for important applications)
+- `claude-sonnet-4-6` — great balance of quality and cost
+- `claude-haiku-4-5` — fast and economical
 
 ---
 
-## 📊 Dashboard tracking
+## 📊 Application Tracking
 
-Ogni candidatura registra:
-- Titolo, azienda, luogo, URL, email HR
-- Stato attuale (con cronologia completa)
-- Lettera di motivazione generata
-- Data invio e note
+Each application stores:
+- Job title, company, location, URL, HR email
+- Current status with full history timeline
+- Generated cover letter
+- Submission date and notes
 
-**Stati disponibili:** Inviata → In revisione → Colloquio telefonico → Colloquio in presenza → Assessment → Offerta ricevuta → Accettata / Rifiutata / Ritirata
+**Available statuses:** Sent → Under Review → Phone Interview → In-Person Interview → Assessment → Offer Received → Accepted / Rejected / Withdrawn
 
 ---
 
 ## 🔒 Privacy
 
-- Il database SQLite è salvato localmente in `/data/` (gitignored)
-- Le credenziali SMTP e API key sono nel `.env` (gitignored)
-- Nessun dato viene inviato a server esterni (eccetto le API Anthropic)
+- The SQLite database is stored locally in `/data/` (gitignored)
+- SMTP credentials and API keys stay in `.env` (gitignored)
+- No data is sent to external servers other than the Anthropic API
 
 ---
 
-## 📄 Licenza
+## 📄 License
 
-MIT License — libero per uso personale e commerciale.
+MIT License — free for personal and commercial use.
 
 ---
 
-*Sviluppato con ❤️ per il mercato del lavoro svizzero*
+*Built with ❤️ for the Swiss job market*
