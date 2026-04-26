@@ -194,6 +194,13 @@ with st.sidebar:
             st.info("Inserisci la tua Groq API Key gratuita per generare lettere con AI  \n"
                     "[→ console.groq.com](https://console.groq.com)")
 
+    with st.expander("🔍 Adzuna API (opzionale)", expanded=False):
+        adzuna_app_id  = st.text_input("App ID",  value=os.getenv("ADZUNA_APP_ID", ""),
+                                        help="Gratuita su developer.adzuna.com — amplia i risultati")
+        adzuna_app_key = st.text_input("App Key", value=os.getenv("ADZUNA_APP_KEY", ""),
+                                        type="password")
+        st.caption("Opzionale — senza key funzionano già i feed RSS di jobs.ch e jobup.ch")
+
     # ── SMTP ─────────────────────────────────────────────────────────────
     with st.expander("📧 Email SMTP", expanded=False):
         smtp_host = st.text_input("SMTP Host", value=os.getenv("SMTP_HOST", "smtp.gmail.com"))
@@ -284,7 +291,9 @@ if page == "🔍 Cerca Offerte":
         else:
             with st.spinner(f"Ricerca '{query}' in {region}…"):
                 try:
-                    jobs = search_jobs(query, region, max_results, sources)
+                    jobs = search_jobs(query, region, max_results, sources,
+                                       adzuna_app_id=adzuna_app_id,
+                                       adzuna_app_key=adzuna_app_key)
                     st.session_state.search_results = jobs
                     st.session_state.search_done = True
                 except Exception as e:
