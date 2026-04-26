@@ -1,8 +1,10 @@
 """
-ai_generator.py – Generazione lettera di motivazione con Claude (Anthropic API).
+ai_generator.py – Generazione lettera di motivazione con Groq (free API).
+Modelli supportati: llama-3.3-70b-versatile, llama-3.1-8b-instant, mixtral-8x7b-32768
+Registrati gratis su: https://console.groq.com
 """
 
-import anthropic
+from groq import Groq
 import logging
 from typing import Optional
 
@@ -99,14 +101,14 @@ def generate_cover_letter(
     candidate: dict,
     extra_notes: str = "",
     language: str = "Francese",
-    model: str = "claude-opus-4-5",
+    model: str = "llama-3.3-70b-versatile",
     max_tokens: int = 1200,
 ) -> str:
     """
-    Genera una lettera di motivazione con Claude.
+    Genera una lettera di motivazione con Groq (free API).
 
     Args:
-        api_key:         Anthropic API key
+        api_key:         Groq API key (gratuita su console.groq.com)
         job_title:       Titolo posizione
         company:         Nome azienda
         location:        Luogo offerta
@@ -114,13 +116,13 @@ def generate_cover_letter(
         candidate:       Dict con nome, skills, lingue, esperienza, ecc.
         extra_notes:     Istruzioni extra per l'AI
         language:        "Francese" | "Italiano" | "Inglese" | "Tedesco"
-        model:           Modello Claude da usare
+        model:           Modello Groq da usare
         max_tokens:      Token massimi risposta
 
     Returns:
         Testo della lettera di motivazione.
     """
-    client = anthropic.Anthropic(api_key=api_key)
+    client = Groq(api_key=api_key)
 
     system = _build_system_prompt(language)
     user   = _build_user_prompt(
@@ -129,16 +131,18 @@ def generate_cover_letter(
     )
 
     try:
-        message = client.messages.create(
+        response = client.chat.completions.create(
             model=model,
             max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user",   "content": user},
+            ],
         )
-        return message.content[0].text.strip()
-    except anthropic.APIError as e:
-        logger.error("Anthropic API error: %s", e)
-        raise RuntimeError(f"Errore API Anthropic: {e}") from e
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error("Groq API error: %s", e)
+        raise RuntimeError(f"Errore API Groq: {e}") from e
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -152,7 +156,7 @@ def generate_email_subject(
     language: str = "Francese",
 ) -> str:
     """Genera un oggetto email professionale per la candidatura."""
-    client = anthropic.Anthropic(api_key=api_key)
+    client = Groq(api_key=api_key)
 
     lang = LANG_PROMPTS.get(language, LANG_PROMPTS["Francese"])["lang"]
     prompt = (
@@ -162,14 +166,13 @@ def generate_email_subject(
     )
 
     try:
-        msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
             max_tokens=100,
             messages=[{"role": "user", "content": prompt}],
         )
-        return msg.content[0].text.strip()
+        return response.choices[0].message.content.strip()
     except Exception:
-        # Fallback generico
         subjects = {
             "Francese": f"Candidature – {job_title} | {candidate_name}",
             "Italiano": f"Candidatura – {job_title} | {candidate_name}",

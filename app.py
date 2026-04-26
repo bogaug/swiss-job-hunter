@@ -181,17 +181,18 @@ with st.sidebar:
     }
 
     # ── API Key ──────────────────────────────────────────────────────────
-    with st.expander("🤖 Anthropic API", expanded=False):
+    with st.expander("🤖 Groq API (gratuita)", expanded=False):
         api_key = st.text_input(
             "API Key",
             type="password",
-            value=os.getenv("ANTHROPIC_API_KEY", ""),
-            help="Ottieni la tua key su console.anthropic.com",
+            value=os.getenv("GROQ_API_KEY", ""),
+            help="Registrati gratis su console.groq.com — nessuna carta di credito richiesta",
         )
         if api_key:
             st.success("✅ API Key configurata")
         else:
-            st.info("Inserisci la tua Anthropic API Key per generare lettere con AI")
+            st.info("Inserisci la tua Groq API Key gratuita per generare lettere con AI  \n"
+                    "[→ console.groq.com](https://console.groq.com)")
 
     # ── SMTP ─────────────────────────────────────────────────────────────
     with st.expander("📧 Email SMTP", expanded=False):
@@ -453,9 +454,9 @@ elif page == "✍️ Nuova Candidatura":
         col_btn, col_model = st.columns([2, 2])
         with col_model:
             model = st.selectbox(
-                "Modello Claude",
-                ["claude-opus-4-5", "claude-sonnet-4-6", "claude-haiku-4-5-20251001"],
-                help="Opus = qualità massima | Haiku = veloce ed economico",
+                "Modello Groq",
+                ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
+                help="70b = qualità massima | 8b = veloce | mixtral = alternativa",
             )
 
         with col_btn:
@@ -463,7 +464,7 @@ elif page == "✍️ Nuova Candidatura":
 
         if gen_btn:
             if not api_key:
-                st.error("❌ Inserisci la tua Anthropic API Key nella sidebar")
+                st.error("❌ Inserisci la tua Groq API Key nella sidebar (gratuita su console.groq.com)")
             elif not fd.get("job_title"):
                 st.error("❌ Salva prima i dettagli dell'offerta nel tab precedente")
             elif not candidate.get("name"):
