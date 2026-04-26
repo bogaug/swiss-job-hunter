@@ -1,14 +1,11 @@
 """
-scraper.py – Ricerca offerte di lavoro in Svizzera.
+scraper.py – Ricerca offerte di lavoro in Svizzera via Adzuna API.
 
-Strategia (in ordine di priorità):
-1. RSS feed di jobs.ch  (nessuna API key, funziona sempre)
-2. RSS feed di jobup.ch (nessuna API key, funziona sempre)
-3. Adzuna API           (gratuita, 250 req/giorno — https://developer.adzuna.com)
+Adzuna è gratuita (250 req/giorno) — registrati su https://developer.adzuna.com
+In assenza di API key, viene restituita una lista demo per test dell'interfaccia.
 """
 
 import requests
-import xml.etree.ElementTree as ET
 import logging
 import time
 from dataclasses import dataclass, field
@@ -18,55 +15,18 @@ import re
 
 logger = logging.getLogger(__name__)
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Regioni svizzere
+# ──────────────────────────────────────────────────────────────────────────────
 REGIONS: dict[str, dict] = {
-    "Svizzera Romanda": {
-        "adzuna":    "suisse romande",
-        "jobs_rss":  "romandie",
-        "jobup_rss": "romandie",
-        "label":     "FR/GE/VD/VS/NE/JU",
-    },
-    "Ticino": {
-        "adzuna":    "ticino",
-        "jobs_rss":  "ticino",
-        "jobup_rss": "ticino",
-        "label":     "TI",
-    },
-    "Zurigo": {
-        "adzuna":    "zurich",
-        "jobs_rss":  "zurich",
-        "jobup_rss": "zurich",
-        "label":     "ZH",
-    },
-    "Berna": {
-        "adzuna":    "bern",
-        "jobs_rss":  "bern",
-        "jobup_rss": "bern",
-        "label":     "BE",
-    },
-    "Basilea": {
-        "adzuna":    "basel",
-        "jobs_rss":  "northwestern-switzerland",
-        "jobup_rss": "basel",
-        "label":     "BS/BL",
-    },
-    "Svizzera Centrale": {
-        "adzuna":    "central switzerland",
-        "jobs_rss":  "central-switzerland",
-        "jobup_rss": "central-switzerland",
-        "label":     "LU/UR/SZ/OW/NW/ZG",
-    },
-    "Svizzera Orientale": {
-        "adzuna":    "eastern switzerland",
-        "jobs_rss":  "eastern-switzerland",
-        "jobup_rss": "eastern-switzerland",
-        "label":     "SG/GR/AR/AI/GL/TG/SH",
-    },
-    "Tutta la Svizzera": {
-        "adzuna":    "",
-        "jobs_rss":  "",
-        "jobup_rss": "",
-        "label":     "CH",
-    },
+    "Svizzera Romanda": {"adzuna": "suisse romande", "label": "FR/GE/VD/VS/NE/JU"},
+    "Ticino":           {"adzuna": "ticino",          "label": "TI"},
+    "Zurigo":           {"adzuna": "zurich",           "label": "ZH"},
+    "Berna":            {"adzuna": "bern",             "label": "BE"},
+    "Basilea":          {"adzuna": "basel",            "label": "BS/BL"},
+    "Svizzera Centrale":{"adzuna": "lucerne",          "label": "LU/UR/SZ/OW/NW/ZG"},
+    "Svizzera Orientale":{"adzuna": "st. gallen",      "label": "SG/GR/AR/AI/GL/TG/SH"},
+    "Tutta la Svizzera":{"adzuna": "",                 "label": "CH"},
 }
 
 
@@ -84,85 +44,21 @@ class Job:
     tags:          List[str] = field(default_factory=list)
 
 
-_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept": "application/rss+xml, application/xml, text/xml, */*",
-    "Accept-Language": "fr-CH,fr;q=0.9,en;q=0.8",
-}
-
-
-def _get(url: str, params: dict | None = None, timeout: int = 12) -> Optional[requests.Response]:
-    try:
-        r = requests.get(url, params=params, headers=_HEADERS, timeout=timeout)
-        r.raise_for_status()
-        return r
-    except requests.RequestException as e:
-        logger.warning("HTTP error %s -> %s", url, e)
-        return None
-
-
 def _strip_html(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text or "")
     return unescape(text).strip()
 
 
-def _parse_rss_items(content: bytes, source: str, max_results: int) -> List[Job]:
-    jobs: List[Job] = []
-    try:
-        root    = ET.fromstring(content)
-        channel = root.find("channel")
-        if channel is None:
-            return jobs
-        for item in channel.findall("item")[:max_results]:
-            title       = _strip_html(item.findtext("title", "—"))
-            link        = item.findtext("link", "")
-            pub_date    = item.findtext("pubDate", "")[:16]
-            description = _strip_html(item.findtext("description", ""))
-            company, location = "—", "—"
-            lines = [l.strip() for l in description.split("\n") if l.strip()]
-            if len(lines) >= 2:
-                company, location = lines[0], lines[1]
-            elif len(lines) == 1:
-                company = lines[0]
-            jobs.append(Job(
-                title=title, company=company, location=location,
-                url=link, source=source, posted_date=pub_date,
-                description=description,
-            ))
-    except ET.ParseError as e:
-        logger.warning("%s RSS parse error: %s", source, e)
-    return jobs
-
-
-def _search_jobsch_rss(query: str, region_code: str, max_results: int) -> List[Job]:
-    params: dict = {"term": query, "rss": "1"}
-    if region_code:
-        params["region"] = region_code
-    r = _get("https://www.jobs.ch/fr/offres-d-emploi/", params=params)
-    if r is None:
-        return []
-    jobs = _parse_rss_items(r.content, "jobs.ch", max_results)
-    logger.info("jobs.ch RSS: %d risultati", len(jobs))
-    return jobs
-
-
-def _search_jobup_rss(query: str, region_code: str, max_results: int) -> List[Job]:
-    params: dict = {"term": query, "rss": "1"}
-    if region_code:
-        params["region"] = region_code
-    r = _get("https://www.jobup.ch/fr/emplois/", params=params)
-    if r is None:
-        return []
-    jobs = _parse_rss_items(r.content, "jobup.ch", max_results)
-    logger.info("jobup.ch RSS: %d risultati", len(jobs))
-    return jobs
-
-
-def _search_adzuna(query: str, region_label: str, max_results: int,
-                   app_id: str, app_key: str) -> List[Job]:
+# ──────────────────────────────────────────────────────────────────────────────
+# Adzuna API
+# ──────────────────────────────────────────────────────────────────────────────
+def _search_adzuna(
+    query: str,
+    where: str,
+    max_results: int,
+    app_id: str,
+    app_key: str,
+) -> List[Job]:
     jobs: List[Job] = []
     params: dict = {
         "app_id":           app_id,
@@ -171,13 +67,21 @@ def _search_adzuna(query: str, region_label: str, max_results: int,
         "results_per_page": min(max_results, 50),
         "content-type":     "application/json",
     }
-    if region_label:
-        params["where"] = region_label
-    r = _get("https://api.adzuna.com/v1/api/jobs/ch/search/1", params=params)
-    if r is None:
-        return jobs
+    if where:
+        params["where"] = where
+
     try:
+        r = requests.get(
+            "https://api.adzuna.com/v1/api/jobs/ch/search/1",
+            params=params,
+            timeout=12,
+        )
+        r.raise_for_status()
         data = r.json()
+
+        if "exception" in data:
+            raise ValueError(data["exception"])
+
         for item in data.get("results", []):
             jobs.append(Job(
                 title=item.get("title", "—"),
@@ -188,69 +92,75 @@ def _search_adzuna(query: str, region_label: str, max_results: int,
                 job_id=str(item.get("id", "")),
                 posted_date=item.get("created", "")[:10],
                 description=_strip_html(item.get("description", "")),
+                tags=item.get("category", {}).get("label", "").split(","),
             ))
-    except Exception as e:
-        logger.warning("Adzuna parse error: %s", e)
+    except requests.RequestException as e:
+        raise ConnectionError(f"Adzuna non raggiungibile: {e}") from e
+    except ValueError as e:
+        raise ValueError(f"Adzuna errore risposta: {e}") from e
+
     logger.info("Adzuna: %d risultati", len(jobs))
     return jobs
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Dati demo (quando non c'è API key)
+# ──────────────────────────────────────────────────────────────────────────────
+_DEMO_JOBS = [
+    Job("Data Engineer (DEMO)", "Nestlé SA", "Lausanne, VD", "https://www.adzuna.ch",
+        "demo", description="Pipeline ETL, Python, Spark, Azure Data Factory.", posted_date="2026-04-20"),
+    Job("Data Analyst (DEMO)", "Swisscom AG", "Bern, BE", "https://www.adzuna.ch",
+        "demo", description="SQL, Power BI, statistiche descrittive.", posted_date="2026-04-19"),
+    Job("ML Engineer (DEMO)", "EPFL Innovation Park", "Lausanne, VD", "https://www.adzuna.ch",
+        "demo", description="PyTorch, MLOps, scikit-learn, Docker.", posted_date="2026-04-18"),
+    Job("Data Scientist (DEMO)", "UBS Group AG", "Genève, GE", "https://www.adzuna.ch",
+        "demo", description="Modelli predittivi, Python, R, risk analytics.", posted_date="2026-04-17"),
+    Job("BI Developer (DEMO)", "SBB CFF FFS", "Bern, BE", "https://www.adzuna.ch",
+        "demo", description="Power BI, SQL Server, DAX, ETL.", posted_date="2026-04-16"),
+]
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ──────────────────────────────────────────────────────────────────────────────
 def search_jobs(
     query: str,
     region_name: str,
     max_results: int = 20,
-    sources: List[str] | None = None,
+    sources: List[str] | None = None,          # non usato, mantenuto per compatibilità
     adzuna_app_id: str = "",
     adzuna_app_key: str = "",
 ) -> List[Job]:
-    if sources is None:
-        sources = ["jobs.ch", "jobup.ch", "adzuna"]
-
+    """
+    Cerca offerte in Svizzera via Adzuna API.
+    Se non ci sono credenziali, restituisce dati demo filtrati per query.
+    """
     region_info = REGIONS.get(region_name, REGIONS["Svizzera Romanda"])
-    all_jobs:  List[Job] = []
-    seen_urls: set[str]  = set()
-    per_source = max(max_results // max(len(sources), 1), 10)
 
-    def _add(new_jobs: List[Job]) -> None:
-        for j in new_jobs:
-            if j.url and j.url not in seen_urls:
-                seen_urls.add(j.url)
-                all_jobs.append(j)
+    if not adzuna_app_id or not adzuna_app_key:
+        # Modalità demo — filtra per query
+        q = query.lower()
+        filtered = [j for j in _DEMO_JOBS if q in j.title.lower() or q in j.description.lower()]
+        return (filtered or _DEMO_JOBS)[:max_results]
 
-    if "jobs.ch" in sources:
-        try:
-            _add(_search_jobsch_rss(query, region_info["jobs_rss"], per_source))
-        except Exception as e:
-            logger.error("jobs.ch RSS failed: %s", e)
-
-    if "jobup.ch" in sources:
-        time.sleep(0.5)
-        try:
-            _add(_search_jobup_rss(query, region_info["jobup_rss"], per_source))
-        except Exception as e:
-            logger.error("jobup.ch RSS failed: %s", e)
-
-    if "adzuna" in sources and adzuna_app_id and adzuna_app_key:
-        time.sleep(0.5)
-        try:
-            _add(_search_adzuna(query, region_info["adzuna"], per_source,
-                                adzuna_app_id, adzuna_app_key))
-        except Exception as e:
-            logger.error("Adzuna failed: %s", e)
-
-    return all_jobs[:max_results]
+    return _search_adzuna(query, region_info["adzuna"], max_results,
+                          adzuna_app_id, adzuna_app_key)
 
 
 def get_job_detail(url: str) -> str:
+    """Scarica il testo della descrizione da un URL di offerta."""
     from bs4 import BeautifulSoup
-    r = _get(url)
-    if r is None:
+    try:
+        r = requests.get(url, timeout=12, headers={"User-Agent": "Mozilla/5.0"})
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "header", "footer"]):
+            tag.decompose()
+        for selector in ["[class*='description']", "[class*='job-detail']", "article", "main"]:
+            el = soup.select_one(selector)
+            if el:
+                return el.get_text(separator="\n", strip=True)[:3000]
+        return soup.get_text(separator="\n", strip=True)[:2000]
+    except Exception as e:
+        logger.warning("get_job_detail error: %s", e)
         return ""
-    soup = BeautifulSoup(r.text, "html.parser")
-    for tag in soup(["script", "style", "nav", "header", "footer"]):
-        tag.decompose()
-    for selector in ["[class*='description']", "[class*='job-detail']", "article", "main"]:
-        el = soup.select_one(selector)
-        if el:
-            return el.get_text(separator="\n", strip=True)[:3000]
-    return soup.get_text(separator="\n", strip=True)[:2000]

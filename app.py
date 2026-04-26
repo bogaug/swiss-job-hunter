@@ -194,12 +194,20 @@ with st.sidebar:
             st.info("Inserisci la tua Groq API Key gratuita per generare lettere con AI  \n"
                     "[→ console.groq.com](https://console.groq.com)")
 
-    with st.expander("🔍 Adzuna API (opzionale)", expanded=False):
-        adzuna_app_id  = st.text_input("App ID",  value=os.getenv("ADZUNA_APP_ID", ""),
-                                        help="Gratuita su developer.adzuna.com — amplia i risultati")
+    with st.expander("🔍 Adzuna API — Ricerca offerte", expanded=True):
+        adzuna_app_id  = st.text_input("App ID",  value=os.getenv("ADZUNA_APP_ID", ""))
         adzuna_app_key = st.text_input("App Key", value=os.getenv("ADZUNA_APP_KEY", ""),
                                         type="password")
-        st.caption("Opzionale — senza key funzionano già i feed RSS di jobs.ch e jobup.ch")
+        if adzuna_app_id and adzuna_app_key:
+            st.success("✅ Adzuna configurata")
+        else:
+            st.warning("⚠️ Senza key la ricerca usa dati demo")
+            st.markdown(
+                "**Setup gratuito (2 min):**\n"
+                "1. Vai su [developer.adzuna.com](https://developer.adzuna.com)\n"
+                "2. Sign up → crea un'app\n"
+                "3. Copia **App ID** e **App Key** qui sopra"
+            )
 
     # ── SMTP ─────────────────────────────────────────────────────────────
     with st.expander("📧 Email SMTP", expanded=False):
@@ -260,7 +268,7 @@ if page == "🔍 Cerca Offerte":
     """, unsafe_allow_html=True)
 
     # ── Barra di ricerca ──────────────────────────────────────────────────
-    col1, col2, col3, col4 = st.columns([3, 2, 1, 1])
+    col1, col2, col3 = st.columns([3, 2, 1])
     with col1:
         query = st.text_input("🔎 Parola chiave", placeholder="Data Engineer, Python, Analytics…")
     with col2:
@@ -271,13 +279,8 @@ if page == "🔍 Cerca Offerte":
         )
     with col3:
         max_results = st.number_input("Max risultati", 5, 50, 20, step=5)
-    with col4:
-        sources = st.multiselect(
-            "Fonti",
-            ["jobup", "jobs.ch"],
-            default=["jobup", "jobs.ch"],
-            label_visibility="visible",
-        )
+
+    sources = ["adzuna"]
 
     col_btn, col_info = st.columns([1, 5])
     with col_btn:
@@ -286,16 +289,16 @@ if page == "🔍 Cerca Offerte":
     if search_btn:
         if not query.strip():
             st.warning("⚠️ Inserisci una parola chiave")
-        elif not sources:
-            st.warning("⚠️ Seleziona almeno una fonte")
         else:
+            is_demo = not (adzuna_app_id and adzuna_app_key)
             with st.spinner(f"Ricerca '{query}' in {region}…"):
                 try:
                     jobs = search_jobs(query, region, max_results, sources,
                                        adzuna_app_id=adzuna_app_id,
                                        adzuna_app_key=adzuna_app_key)
                     st.session_state.search_results = jobs
-                    st.session_state.search_done = True
+                    st.session_state.search_done    = True
+                    st.session_state.search_is_demo = is_demo
                 except Exception as e:
                     st.error(f"Errore durante la ricerca: {e}")
                     st.session_state.search_results = []
@@ -303,6 +306,12 @@ if page == "🔍 Cerca Offerte":
     # ── Risultati ─────────────────────────────────────────────────────────
     if st.session_state.search_done:
         jobs = st.session_state.search_results
+        if st.session_state.get("search_is_demo"):
+            st.info(
+                "🟡 **Modalità demo** — stai vedendo offerte di esempio. "
+                "Per risultati reali configura la **Adzuna API** nella sidebar "
+                "(gratuita su [developer.adzuna.com](https://developer.adzuna.com))."
+            )
         if jobs:
             st.success(f"✅ {len(jobs)} offerte trovate")
 
