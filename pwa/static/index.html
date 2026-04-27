@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#DC143C">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JobHunter">
+<title>Swiss Job Hunter</title>
+<link rel="manifest" href="/manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --red:#DC143C;--red2:#B01030;
+  --bg:#F4F4F7;--card:#fff;--border:#E2E5EA;
+  --text:#1A1A2E;--muted:#6B7280;
+  --green:#10B981;--amber:#F59E0B;--blue:#3B82F6;
+  --radius:14px;--safe-bottom:env(safe-area-inset-bottom,0px)
+}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text)}
+
+/* ── Layout ── */
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+#topbar{background:linear-gradient(135deg,var(--red),var(--red2));color:#fff;padding:.9rem 1rem .9rem;display:flex;align-items:center;gap:.6rem;flex-shrink:0;padding-top:max(.9rem,env(safe-area-inset-top))}
+#topbar .logo{font-size:1.2rem;font-weight:700;flex:1}
+#topbar .sub{font-size:.75rem;opacity:.8}
+#pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(64px + var(--safe-bottom))}
+#navbar{position:fixed;bottom:0;left:0;right:0;height:calc(64px + var(--safe-bottom));padding-bottom:var(--safe-bottom);background:var(--card);border-top:1px solid var(--border);display:flex;z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;font-size:.65rem;color:var(--muted);cursor:pointer;transition:color .15s}
+.nav-btn.active{color:var(--red)}
+.nav-btn .icon{font-size:1.35rem;line-height:1}
+.page{display:none;padding:1rem}
+.page.active{display:block}
+
+/* ── Cards ── */
+.card{background:var(--card);border-radius:var(--radius);padding:1rem;margin-bottom:.8rem;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.card-title{font-weight:600;font-size:1rem;margin-bottom:.25rem}
+.card-meta{font-size:.8rem;color:var(--muted);line-height:1.5}
+.card-actions{display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap}
+
+/* ── Form ── */
+.field{margin-bottom:.9rem}
+.field label{display:block;font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:.75rem 1rem;border:1.5px solid var(--border);border-radius:10px;font-size:.95rem;font-family:inherit;background:var(--card);color:var(--text);appearance:none;-webkit-appearance:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--red)}
+.field textarea{resize:vertical;min-height:110px}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 1rem center}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.75rem 1.25rem;border-radius:10px;font-size:.9rem;font-weight:600;border:none;cursor:pointer;transition:opacity .15s,transform .1s;-webkit-user-select:none}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--red);color:#fff;width:100%}
+.btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+.btn-sm{padding:.45rem .9rem;font-size:.8rem}
+.btn-danger{background:#FEE2E2;color:#DC2626}
+.btn-success{background:#D1FAE5;color:#065F46}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── Badge ── */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.73rem;font-weight:600}
+.badge-inviata{background:#EFF6FF;color:var(--blue)}
+.badge-revisione{background:#FFF7ED;color:var(--amber)}
+.badge-colloquio{background:#FEF3C7;color:#D97706}
+.badge-offerta{background:#D1FAE5;color:#065F46}
+.badge-rifiutata{background:#FEE2E2;color:#DC2626}
+.badge-default{background:#F3F4F6;color:var(--muted)}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin-bottom:1rem}
+.kpi{background:var(--card);border-radius:var(--radius);padding:.9rem;text-align:center;border:1px solid var(--border)}
+.kpi .n{font-size:1.9rem;font-weight:700;color:var(--red)}
+.kpi .l{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+
+/* ── Alerts ── */
+.alert{padding:.75rem 1rem;border-radius:10px;font-size:.87rem;margin-bottom:.8rem;line-height:1.45}
+.alert-info{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+.alert-warn{background:#FFFBEB;color:#92400E;border:1px solid #FDE68A}
+.alert-ok{background:#D1FAE5;color:#065F46;border:1px solid #A7F3D0}
+.alert-err{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+
+/* ── Section heading ── */
+h2{font-size:1rem;font-weight:700;margin-bottom:.75rem;color:var(--text)}
+.section-sep{height:1px;background:var(--border);margin:1rem 0}
+
+/* ── Spinner ── */
+.spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(220,20,60,.2);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-row{display:flex;align-items:center;justify-content:center;gap:.6rem;padding:2rem;color:var(--muted);font-size:.9rem}
+
+/* ── Source chip ── */
+.chip{display:inline-block;padding:1px 8px;border-radius:12px;font-size:.72rem;font-weight:600;background:#EFF6FF;color:var(--blue)}
+.chip.demo{background:#FEF3C7;color:#92400E}
+
+/* ── Modal ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-end}
+.overlay.open{display:flex}
+.modal{background:var(--card);border-radius:20px 20px 0 0;padding:1.5rem 1rem calc(1.5rem + var(--safe-bottom));width:100%;max-height:90dvh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 1rem}
+.modal h3{font-size:1.05rem;font-weight:700;margin-bottom:1rem}
+
+/* ── Tabs ── */
+.tabs{display:flex;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:1rem;gap:2px}
+.tab{flex:1;padding:.5rem;text-align:center;font-size:.8rem;font-weight:600;color:var(--muted);border-radius:8px;cursor:pointer;border:none;background:none;transition:all .15s}
+.tab.active{background:var(--card);color:var(--red);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* ── Letter preview ── */
+.letter-box{background:#FAFAFA;border:1px solid var(--border);border-radius:10px;padding:1rem;font-size:.87rem;line-height:1.65;white-space:pre-wrap;max-height:280px;overflow-y:auto;color:var(--text)}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:3rem 1rem;color:var(--muted)}
+.empty .icon{font-size:3rem;margin-bottom:.75rem}
+.empty p{font-size:.9rem}
+
+/* ── Config item ── */
+.cfg-section{margin-bottom:1.5rem}
+.cfg-section h3{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div>
+      <div class="logo">🇨🇭 Swiss Job Hunter</div>
+      <div class="sub">Cerca lavoro in Svizzera</div>
+    </div>
+    <div id="online-badge" style="font-size:.7rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px">🟢 Online</div>
+  </div>
+
+  <!-- Pages -->
+  <div id="pages">
+
+    <!-- ══ SEARCH PAGE ══ -->
+    <div class="page active" id="page-search">
+      <div id="search-demo-banner" class="alert alert-warn" style="display:none">
+        🟡 <b>Modalità demo</b> — configura la chiave Adzuna in <b>Impostazioni</b> per risultati reali.
+      </div>
+
+      <div class="card" style="margin-bottom:.8rem">
+        <div class="field" style="margin-bottom:.6rem">
+          <input type="search" id="q-input" placeholder="🔎 Data Engineer, Python…" inputmode="search">
+        </div>
+        <div class="field" style="margin-bottom:.6rem">
+          <select id="region-select"></select>
+        </div>
+        <button class="btn btn-primary" id="search-btn">Cerca offerte</button>
+      </div>
+
+      <div id="search-status"></div>
+      <div id="search-results"></div>
+    </div>
+
+    <!-- ══ APPLY PAGE ══ -->
+    <div class="page" id="page-apply">
+      <div class="tabs">
+        <button class="tab active" data-tab="t-details">📋 Offerta</button>
+        <button class="tab" data-tab="t-letter">🤖 Lettera</button>
+        <button class="tab" data-tab="t-send">📧 Invia</button>
+      </div>
+
+      <!-- Tab: Dettagli -->
+      <div id="t-details">
+        <div id="selected-job-banner" class="alert alert-info" style="display:none"></div>
+        <div class="field"><label>Posizione *</label><input id="f-title" type="text" placeholder="Data Engineer"></div>
+        <div class="field"><label>Azienda *</label><input id="f-company" type="text" placeholder="Nestlé SA"></div>
+        <div class="field"><label>Luogo</label><input id="f-location" type="text" placeholder="Lausanne, VD"></div>
+        <div class="field"><label>URL offerta</label><input id="f-url" type="url" placeholder="https://…"></div>
+        <div class="field"><label>Email HR</label><input id="f-hr-email" type="email" placeholder="hr@azienda.ch"></div>
+        <div class="field"><label>Descrizione offerta</label><textarea id="f-description" placeholder="Incolla qui il testo dell'offerta per migliorare la lettera…"></textarea></div>
+        <button class="btn btn-primary" id="save-details-btn">💾 Salva dettagli</button>
+      </div>
+
+      <!-- Tab: Lettera -->
+      <div id="t-letter" style="display:none">
+        <div id="letter-job-summary" class="alert alert-info" style="margin-bottom:.8rem;display:none"></div>
+        <div class="field">
+          <label>Lingua lettera</label>
+          <select id="f-lang">
+            <option value="Francese">Français</option>
+            <option value="Italiano">Italiano</option>
+            <option value="Inglese">English</option>
+            <option value="Tedesco">Deutsch</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Modello AI</label>
+          <select id="f-model">
+            <option value="llama-3.3-70b-versatile">Llama 3.3 70B (qualità max)</option>
+            <option value="llama-3.1-8b-instant">Llama 3.1 8B (veloce)</option>
+            <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+          </select>
+        </div>
+        <div class="field"><label>Note aggiuntive (opzionale)</label><textarea id="f-notes" placeholder="es: enfatizza esperienza bancaria…" style="min-height:70px"></textarea></div>
+        <button class="btn btn-primary" id="gen-btn">🤖 Genera lettera</button>
+        <div id="gen-status" style="margin-top:.6rem"></div>
+        <div id="letter-result" style="display:none;margin-top:.8rem">
+          <h2>Lettera generata</h2>
+          <div class="letter-box" id="letter-text"></div>
+          <div class="card-actions" style="margin-top:.6rem">
+            <button class="btn btn-secondary btn-sm" id="copy-letter-btn">📋 Copia</button>
+            <button class="btn btn-secondary btn-sm" id="edit-letter-btn">✏️ Modifica</button>
+            <button class="btn btn-secondary btn-sm" id="regen-btn">🔄 Rigenera</button>
+          </div>
+          <textarea id="letter-edit" style="display:none;width:100%;min-height:220px;padding:.75rem;border:1.5px solid var(--red);border-radius:10px;font-size:.87rem;margin-top:.5rem;font-family:inherit"></textarea>
+        </div>
+      </div>
+
+      <!-- Tab: Invia -->
+      <div id="t-send" style="display:none">
+        <div class="field"><label>Email destinatario *</label><input id="f-to" type="email" placeholder="hr@azienda.ch"></div>
+        <div class="field"><label>Oggetto email</label><input id="f-subject" type="text"></div>
+        <div class="field"><label>Introduzione</label><textarea id="f-intro" style="min-height:80px"></textarea></div>
+        <div id="send-preview-box" style="display:none;margin-bottom:.8rem">
+          <h2>Anteprima</h2>
+          <div class="letter-box" id="email-preview" style="font-size:.8rem"></div>
+        </div>
+        <div class="card-actions" style="margin-bottom:.6rem">
+          <button class="btn btn-secondary btn-sm" id="preview-btn">👁️ Anteprima</button>
+        </div>
+        <button class="btn btn-primary" id="send-btn" style="margin-bottom:.5rem">📧 Invia candidatura</button>
+        <button class="btn btn-secondary" id="save-only-btn" style="width:100%">💾 Salva senza inviare</button>
+        <div id="send-status" style="margin-top:.6rem"></div>
+      </div>
+    </div>
+
+    <!-- ══ TRACKER PAGE ══ -->
+    <div class="page" id="page-tracker">
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="field">
+        <select id="status-filter">
+          <option value="">Tutti gli stati</option>
+        </select>
+      </div>
+
+      <div id="tracker-list"></div>
+    </div>
+
+    <!-- ══ SETTINGS PAGE ══ -->
+    <div class="page" id="page-settings">
+
+      <div class="cfg-section">
+        <h3>👤 Il tuo profilo</h3>
+        <div class="field"><label>Nome completo</label><input id="cfg-name" type="text"></div>
+        <div class="field"><label>Email</label><input id="cfg-email" type="email"></div>
+        <div class="field"><label>Ruolo ricercato</label><input id="cfg-role" type="text" placeholder="Data Engineer"></div>
+        <div class="field"><label>Competenze</label><textarea id="cfg-skills" placeholder="Python, SQL, Spark…" style="min-height:70px"></textarea></div>
+        <div class="field"><label>Formazione</label><input id="cfg-edu" type="text" placeholder="BSc Data Engineering, HEIA-FR (2025)"></div>
+        <div class="field"><label>Esperienza</label><textarea id="cfg-exp" style="min-height:70px"></textarea></div>
+        <div class="field"><label>Lingue</label><input id="cfg-langs" type="text" placeholder="Italiano (madrelingua), Francese C1"></div>
+      </div>
+
+      <div class="section-sep"></div>
+
+      <div class="cfg-section">
+        <h3>🤖 Groq API</h3>
+        <div class="field"><label>API Key (gratuita su console.groq.com)</label><input id="cfg-groq" type="password" placeholder="gsk_…"></div>
+      </div>
+
+      <div class="section-sep"></div>
+
+      <div class="cfg-section">
+        <h3>🔍 Adzuna API</h3>
+        <div class="alert alert-info" style="margin-bottom:.8rem;font-size:.82rem">
+          Gratuita su <b>developer.adzuna.com</b> — 250 ricerche/giorno
+        </div>
+        <div class="field"><label>App ID</label><input id="cfg-adzuna-id" type="text"></div>
+        <div class="field"><label>App Key</label><input id="cfg-adzuna-key" type="password"></div>
+      </div>
+
+      <div class="section-sep"></div>
+
+      <div class="cfg-section">
+        <h3>📧 Email SMTP</h3>
+        <div class="field"><label>SMTP Host</label><input id="cfg-smtp-host" type="text" value="smtp.gmail.com"></div>
+        <div class="field"><label>Porta</label><input id="cfg-smtp-port" type="number" value="587"></div>
+        <div class="field"><label>Email mittente</label><input id="cfg-smtp-user" type="email"></div>
+        <div class="field"><label>App Password</label><input id="cfg-smtp-pass" type="password"></div>
+      </div>
+
+      <button class="btn btn-primary" id="save-cfg-btn">💾 Salva impostazioni</button>
+      <div id="cfg-status" style="margin-top:.6rem"></div>
+      <div style="height:.5rem"></div>
+      <button class="btn btn-secondary" style="width:100%;margin-top:.4rem;font-size:.82rem" id="export-btn">⬇️ Esporta candidature CSV</button>
+    </div>
+
+  </div>
+
+  <!-- Bottom navbar -->
+  <nav id="navbar">
+    <button class="nav-btn active" data-page="page-search"><span class="icon">🔍</span>Cerca</button>
+    <button class="nav-btn" data-page="page-apply"><span class="icon">✍️</span>Candidatura</button>
+    <button class="nav-btn" data-page="page-tracker"><span class="icon">📊</span>Tracker</button>
+    <button class="nav-btn" data-page="page-settings"><span class="icon">⚙️</span>Impostazioni</button>
+  </nav>
+</div>
+
+<!-- Status update modal -->
+<div class="overlay" id="status-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Aggiorna stato</h3>
+    <div class="field">
+      <label>Nuovo stato</label>
+      <select id="modal-status"></select>
+    </div>
+    <div class="field">
+      <label>Note (opzionale)</label>
+      <textarea id="modal-notes" style="min-height:70px"></textarea>
+    </div>
+    <div class="card-actions">
+      <button class="btn btn-primary" id="modal-save-btn" style="flex:1">Salva</button>
+      <button class="btn btn-secondary" id="modal-cancel-btn">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+const API = '';   // same origin
+let CFG = {};
+let selectedJob = null;
+let generatedLetter = '';
+let currentAppId = null;
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+function saveCfg() { localStorage.setItem('sjh_cfg', JSON.stringify(CFG)); }
+function loadCfg() {
+  try { CFG = JSON.parse(localStorage.getItem('sjh_cfg') || '{}'); } catch { CFG = {}; }
+  document.getElementById('cfg-name').value        = CFG.name || '';
+  document.getElementById('cfg-email').value       = CFG.email || '';
+  document.getElementById('cfg-role').value        = CFG.role || 'Data Engineer';
+  document.getElementById('cfg-skills').value      = CFG.skills || '';
+  document.getElementById('cfg-edu').value         = CFG.edu || '';
+  document.getElementById('cfg-exp').value         = CFG.exp || '';
+  document.getElementById('cfg-langs').value       = CFG.langs || 'Italiano (madrelingua), Francese C1, Inglese C1';
+  document.getElementById('cfg-groq').value        = CFG.groq || '';
+  document.getElementById('cfg-adzuna-id').value   = CFG.adzuna_id || '';
+  document.getElementById('cfg-adzuna-key').value  = CFG.adzuna_key || '';
+  document.getElementById('cfg-smtp-host').value   = CFG.smtp_host || 'smtp.gmail.com';
+  document.getElementById('cfg-smtp-port').value   = CFG.smtp_port || '587';
+  document.getElementById('cfg-smtp-user').value   = CFG.smtp_user || '';
+  document.getElementById('cfg-smtp-pass').value   = CFG.smtp_pass || '';
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const page = document.getElementById(btn.dataset.page);
+    page.classList.add('active');
+    if (btn.dataset.page === 'page-tracker') loadTracker();
+  });
+});
+
+// ── Tabs (Apply page) ────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    ['t-details','t-letter','t-send'].forEach(id => document.getElementById(id).style.display='none');
+    document.getElementById(tab.dataset.tab).style.display='block';
+    if (tab.dataset.tab === 't-send') populateSendTab();
+  });
+});
+
+// ── Regions ──────────────────────────────────────────────────────────────────
+async function loadRegions() {
+  try {
+    const res = await fetch('/api/regions');
+    const regions = await res.json();
+    const sel = document.getElementById('region-select');
+    regions.forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.name; o.textContent = `${r.name} (${r.label})`;
+      sel.appendChild(o);
+    });
+  } catch { console.warn('Regions load failed'); }
+}
+
+// ── Search ───────────────────────────────────────────────────────────────────
+document.getElementById('search-btn').addEventListener('click', doSearch);
+document.getElementById('q-input').addEventListener('keydown', e => { if(e.key==='Enter') doSearch(); });
+
+async function doSearch() {
+  const q = document.getElementById('q-input').value.trim();
+  if (!q) { showAlert('search-status','Inserisci una parola chiave','warn'); return; }
+  const region = document.getElementById('region-select').value;
+  const params = new URLSearchParams({ query: q, region,
+    adzuna_app_id: CFG.adzuna_id || '', adzuna_app_key: CFG.adzuna_key || '' });
+
+  document.getElementById('search-results').innerHTML = '';
+  document.getElementById('search-status').innerHTML =
+    '<div class="loading-row"><div class="spinner"></div> Ricerca in corso…</div>';
+  document.getElementById('search-demo-banner').style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/search?${params}`);
+    const data = await res.json();
+    document.getElementById('search-status').innerHTML = '';
+
+    if (data.is_demo) document.getElementById('search-demo-banner').style.display = 'block';
+
+    if (!data.jobs.length) {
+      document.getElementById('search-results').innerHTML =
+        '<div class="empty"><div class="icon">🔍</div><p>Nessun risultato. Prova parole chiave diverse.</p></div>';
+      return;
+    }
+
+    document.getElementById('search-results').innerHTML =
+      `<p style="font-size:.82rem;color:var(--muted);margin-bottom:.5rem">${data.total} offerte trovate</p>` +
+      data.jobs.map((j,i) => `
+        <div class="card">
+          <div class="card-title">${esc(j.title)}</div>
+          <div class="card-meta">
+            🏢 ${esc(j.company)}<br>
+            📍 ${esc(j.location)}
+            ${j.posted_date ? ' &nbsp;|&nbsp; 📅 '+j.posted_date : ''}
+          </div>
+          <div style="margin-top:.4rem">
+            <span class="chip${j.source==='demo'?' demo':''}">${j.source}</span>
+          </div>
+          <div class="card-actions">
+            ${j.url ? `<a href="${esc(j.url)}" target="_blank" class="btn btn-secondary btn-sm">🔗 Offerta</a>` : ''}
+            <button class="btn btn-primary btn-sm" onclick="selectJob(${i})">✍️ Candidati</button>
+          </div>
+        </div>
+      `).join('');
+
+    window._searchResults = data.jobs;
+  } catch(e) {
+    document.getElementById('search-status').innerHTML = '';
+    showAlert('search-status', 'Errore connessione: ' + e.message, 'err');
+  }
+}
+
+function selectJob(i) {
+  selectedJob = window._searchResults[i];
+  document.getElementById('f-title').value       = selectedJob.title;
+  document.getElementById('f-company').value     = selectedJob.company;
+  document.getElementById('f-location').value    = selectedJob.location;
+  document.getElementById('f-url').value         = selectedJob.url;
+  document.getElementById('f-description').value = selectedJob.description || '';
+
+  // Navigate to Apply > Details tab
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-page="page-apply"]').classList.add('active');
+  document.getElementById('page-apply').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="t-details"]').classList.add('active');
+  ['t-details','t-letter','t-send'].forEach(id =>
+    document.getElementById(id).style.display = id==='t-details'?'block':'none');
+
+  const banner = document.getElementById('selected-job-banner');
+  banner.textContent = `Offerta selezionata: ${selectedJob.title} @ ${selectedJob.company}`;
+  banner.style.display = 'block';
+}
+
+// ── Save details ─────────────────────────────────────────────────────────────
+document.getElementById('save-details-btn').addEventListener('click', () => {
+  if (!document.getElementById('f-title').value.trim() || !document.getElementById('f-company').value.trim()) {
+    showAlert('search-status','Compila almeno Posizione e Azienda','warn'); return;
+  }
+  const summary = document.getElementById('letter-job-summary');
+  summary.textContent = `${document.getElementById('f-title').value} @ ${document.getElementById('f-company').value}`;
+  summary.style.display = 'block';
+
+  // Auto-fill send tab subject
+  document.getElementById('f-subject').value =
+    `Candidatura – ${document.getElementById('f-title').value} | ${CFG.name || ''}`;
+  document.getElementById('f-to').value = document.getElementById('f-hr-email').value;
+  document.getElementById('f-intro').value =
+    `Gentile Responsabile,\n\nLe invio la mia candidatura per la posizione di `+
+    `${document.getElementById('f-title').value} presso ${document.getElementById('f-company').value}.\n`;
+
+  // Switch tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="t-letter"]').classList.add('active');
+  ['t-details','t-letter','t-send'].forEach(id =>
+    document.getElementById(id).style.display = id==='t-letter'?'block':'none');
+});
+
+// ── Generate letter ──────────────────────────────────────────────────────────
+document.getElementById('gen-btn').addEventListener('click', async () => {
+  if (!CFG.groq) { showAlert('gen-status','Inserisci la tua Groq API Key in Impostazioni','warn'); return; }
+  if (!document.getElementById('f-title').value.trim()) {
+    showAlert('gen-status','Salva prima i dettagli dell\'offerta nel tab Offerta','warn'); return;
+  }
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('gen-btn').textContent = '⏳ Generazione…';
+  document.getElementById('gen-status').innerHTML = '<div class="loading-row"><div class="spinner"></div> Claude sta scrivendo…</div>';
+  document.getElementById('letter-result').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/generate-letter', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        job_title:        document.getElementById('f-title').value,
+        company:          document.getElementById('f-company').value,
+        location:         document.getElementById('f-location').value,
+        job_description:  document.getElementById('f-description').value,
+        candidate_name:   CFG.name || '',
+        candidate_role:   CFG.role || '',
+        candidate_skills: CFG.skills || '',
+        candidate_edu:    CFG.edu || '',
+        candidate_exp:    CFG.exp || '',
+        candidate_langs:  CFG.langs || '',
+        extra_notes:      document.getElementById('f-notes').value,
+        language:         document.getElementById('f-lang').value,
+        model:            document.getElementById('f-model').value,
+        api_key:          CFG.groq,
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Errore generazione');
+
+    generatedLetter = data.letter;
+    document.getElementById('gen-status').innerHTML = '';
+    document.getElementById('letter-result').style.display = 'block';
+    document.getElementById('letter-text').textContent = generatedLetter;
+    document.getElementById('letter-edit').value = generatedLetter;
+  } catch(e) {
+    showAlert('gen-status', '❌ ' + e.message, 'err');
+  } finally {
+    document.getElementById('gen-btn').disabled = false;
+    document.getElementById('gen-btn').textContent = '🤖 Genera lettera';
+  }
+});
+
+document.getElementById('copy-letter-btn').addEventListener('click', () => {
+  navigator.clipboard.writeText(generatedLetter).then(() => {
+    document.getElementById('copy-letter-btn').textContent = '✅ Copiata!';
+    setTimeout(() => document.getElementById('copy-letter-btn').textContent = '📋 Copia', 2000);
+  });
+});
+document.getElementById('edit-letter-btn').addEventListener('click', () => {
+  const ed = document.getElementById('letter-edit');
+  const vis = ed.style.display !== 'none';
+  ed.style.display = vis ? 'none' : 'block';
+  document.getElementById('edit-letter-btn').textContent = vis ? '✏️ Modifica' : '✅ Chiudi editor';
+});
+document.getElementById('letter-edit').addEventListener('input', e => { generatedLetter = e.target.value; });
+document.getElementById('regen-btn').addEventListener('click', () => {
+  generatedLetter = ''; document.getElementById('letter-result').style.display = 'none';
+});
+
+// ── Send tab ─────────────────────────────────────────────────────────────────
+function populateSendTab() {
+  if (!document.getElementById('f-subject').value) {
+    document.getElementById('f-subject').value =
+      `Candidatura – ${document.getElementById('f-title').value} | ${CFG.name||''}`;
+  }
+}
+
+document.getElementById('preview-btn').addEventListener('click', () => {
+  const box = document.getElementById('send-preview-box');
+  const visible = box.style.display !== 'none';
+  box.style.display = visible ? 'none' : 'block';
+  if (!visible) {
+    const body = document.getElementById('f-intro').value + '\n\n' + generatedLetter;
+    document.getElementById('email-preview').textContent =
+      `A: ${document.getElementById('f-to').value}\nOggetto: ${document.getElementById('f-subject').value}\n${'─'.repeat(40)}\n${body}`;
+  }
+});
+
+document.getElementById('send-btn').addEventListener('click', async () => {
+  const to = document.getElementById('f-to').value.trim();
+  if (!to) { showAlert('send-status','Inserisci l\'email del destinatario','warn'); return; }
+  if (!CFG.smtp_user || !CFG.smtp_pass) {
+    showAlert('send-status','Configura SMTP in Impostazioni','warn'); return;
+  }
+
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('send-btn').textContent = '⏳ Invio…';
+
+  try {
+    const body = document.getElementById('f-intro').value + '\n\n' + generatedLetter;
+    const res = await fetch('/api/send-email', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        to_email: to,
+        subject:  document.getElementById('f-subject').value,
+        body,
+        smtp_host:     CFG.smtp_host || 'smtp.gmail.com',
+        smtp_port:     parseInt(CFG.smtp_port) || 587,
+        smtp_user:     CFG.smtp_user,
+        smtp_password: CFG.smtp_pass,
+        sender_name:   CFG.name || '',
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Errore invio');
+
+    // Save to tracker
+    await fetch('/api/applications', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        job_title: document.getElementById('f-title').value,
+        company:   document.getElementById('f-company').value,
+        location:  document.getElementById('f-location').value,
+        url:       document.getElementById('f-url').value,
+        hr_email:  to,
+        cover_letter: generatedLetter,
+        status:    'Inviata',
+      })
+    });
+
+    showAlert('send-status', '✅ Candidatura inviata e salvata nel tracker!', 'ok');
+  } catch(e) {
+    showAlert('send-status', '❌ ' + e.message, 'err');
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').textContent = '📧 Invia candidatura';
+  }
+});
+
+document.getElementById('save-only-btn').addEventListener('click', async () => {
+  if (!document.getElementById('f-title').value.trim()) {
+    showAlert('send-status','Compila i dettagli dell\'offerta nel primo tab','warn'); return;
+  }
+  await fetch('/api/applications', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      job_title: document.getElementById('f-title').value,
+      company:   document.getElementById('f-company').value,
+      location:  document.getElementById('f-location').value,
+      url:       document.getElementById('f-url').value,
+      hr_email:  document.getElementById('f-to').value,
+      cover_letter: generatedLetter,
+      status:    'In revisione',
+    })
+  });
+  showAlert('send-status','💾 Candidatura salvata nel tracker','ok');
+});
+
+// ── Tracker ──────────────────────────────────────────────────────────────────
+async function loadTracker() {
+  const statusFilter = document.getElementById('status-filter').value;
+  const params = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
+
+  document.getElementById('tracker-list').innerHTML =
+    '<div class="loading-row"><div class="spinner"></div> Caricamento…</div>';
+
+  try {
+    const [statsRes, appsRes] = await Promise.all([
+      fetch('/api/stats'), fetch('/api/applications' + params)
+    ]);
+    const stats = await statsRes.json();
+    const apps  = await appsRes.json();
+
+    // KPI
+    document.getElementById('kpi-grid').innerHTML = `
+      <div class="kpi"><div class="n">${stats.total}</div><div class="l">📤 Totali</div></div>
+      <div class="kpi"><div class="n">${stats.pending}</div><div class="l">⏳ In attesa</div></div>
+      <div class="kpi"><div class="n">${stats.interviews}</div><div class="l">📞 Colloqui</div></div>
+      <div class="kpi"><div class="n">${stats.offers}</div><div class="l">🎉 Offerte</div></div>
+    `;
+
+    if (!apps.length) {
+      document.getElementById('tracker-list').innerHTML =
+        '<div class="empty"><div class="icon">📋</div><p>Nessuna candidatura. Inizia dalla tab Cerca!</p></div>';
+      return;
+    }
+
+    document.getElementById('tracker-list').innerHTML = apps.map(a => `
+      <div class="card">
+        <div class="card-title">${esc(a.job_title)}</div>
+        <div class="card-meta">🏢 ${esc(a.company)} &nbsp;|&nbsp; 📍 ${esc(a.location||'—')}</div>
+        <div style="margin-top:.4rem;margin-bottom:.4rem">${statusBadge(a.status)}</div>
+        <div class="card-meta">${a.sent_date ? '📅 ' + a.sent_date.slice(0,10) : ''}</div>
+        <div class="card-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openStatusModal(${a.id},'${esc(a.status)}')">🔄 Stato</button>
+          ${a.url ? `<a href="${esc(a.url)}" target="_blank" class="btn btn-secondary btn-sm">🔗</a>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteApp(${a.id})">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('tracker-list').innerHTML =
+      `<div class="alert alert-err">Errore: ${e.message}</div>`;
+  }
+}
+
+document.getElementById('status-filter').addEventListener('change', loadTracker);
+
+async function deleteApp(id) {
+  if (!confirm('Eliminare questa candidatura?')) return;
+  await fetch(`/api/applications/${id}`, { method: 'DELETE' });
+  loadTracker();
+}
+
+// ── Status modal ─────────────────────────────────────────────────────────────
+async function openStatusModal(id, currentStatus) {
+  currentAppId = id;
+  const sel = document.getElementById('modal-status');
+  if (!sel.options.length) {
+    const statuses = await (await fetch('/api/statuses')).json();
+    sel.innerHTML = statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    // Populate status filter too
+    const sf = document.getElementById('status-filter');
+    sf.innerHTML = '<option value="">Tutti gli stati</option>' +
+      statuses.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+  sel.value = currentStatus;
+  document.getElementById('modal-notes').value = '';
+  document.getElementById('status-modal').classList.add('open');
+}
+
+document.getElementById('modal-cancel-btn').addEventListener('click', () => {
+  document.getElementById('status-modal').classList.remove('open');
+});
+document.getElementById('status-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('status-modal'))
+    document.getElementById('status-modal').classList.remove('open');
+});
+document.getElementById('modal-save-btn').addEventListener('click', async () => {
+  await fetch(`/api/applications/${currentAppId}/status`, {
+    method: 'PATCH', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      status: document.getElementById('modal-status').value,
+      notes:  document.getElementById('modal-notes').value,
+    })
+  });
+  document.getElementById('status-modal').classList.remove('open');
+  loadTracker();
+});
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+document.getElementById('save-cfg-btn').addEventListener('click', () => {
+  CFG = {
+    name:       document.getElementById('cfg-name').value,
+    email:      document.getElementById('cfg-email').value,
+    role:       document.getElementById('cfg-role').value,
+    skills:     document.getElementById('cfg-skills').value,
+    edu:        document.getElementById('cfg-edu').value,
+    exp:        document.getElementById('cfg-exp').value,
+    langs:      document.getElementById('cfg-langs').value,
+    groq:       document.getElementById('cfg-groq').value,
+    adzuna_id:  document.getElementById('cfg-adzuna-id').value,
+    adzuna_key: document.getElementById('cfg-adzuna-key').value,
+    smtp_host:  document.getElementById('cfg-smtp-host').value,
+    smtp_port:  document.getElementById('cfg-smtp-port').value,
+    smtp_user:  document.getElementById('cfg-smtp-user').value,
+    smtp_pass:  document.getElementById('cfg-smtp-pass').value,
+  };
+  saveCfg();
+  showAlert('cfg-status','✅ Impostazioni salvate','ok');
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  window.open('/api/export/csv', '_blank');
+});
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showAlert(containerId, msg, type='info') {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  setTimeout(() => { if(el) el.innerHTML=''; }, 5000);
+}
+
+function statusBadge(status) {
+  const map = {
+    'Inviata':'inviata','In revisione':'revisione',
+    'Colloquio telefonico':'colloquio','Colloquio in presenza':'colloquio','Assessment':'colloquio',
+    'Offerta ricevuta':'offerta','Accettata':'offerta',
+    'Rifiutata':'rifiutata','Ritirata':'rifiutata',
+  };
+  const cls = map[status] || 'default';
+  return `<span class="badge badge-${cls}">${status}</span>`;
+}
+
+// ── PWA Service Worker ────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(console.warn);
+}
+
+// Online/offline indicator
+window.addEventListener('offline', () => {
+  document.getElementById('online-badge').textContent = '🔴 Offline';
+  document.getElementById('online-badge').style.background = 'rgba(220,53,69,.3)';
+});
+window.addEventListener('online', () => {
+  document.getElementById('online-badge').textContent = '🟢 Online';
+  document.getElementById('online-badge').style.background = 'rgba(255,255,255,.2)';
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadCfg();
+loadRegions();
+</script>
+</body>
+</html>
