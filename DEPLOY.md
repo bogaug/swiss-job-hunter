@@ -1,161 +1,93 @@
-# 📱 Deploy gratuito su smartphone
+# 📱 Deploy gratis su cloud (accessibile da smartphone)
 
-Scegli **una** di queste opzioni per avere l'app sempre online e accessibile da qualsiasi smartphone.
+## ⚡ Opzione 1: Render.com (Consigliata - più semplice)
 
----
+**Setup in 3 click:**
 
-## ✅ Opzione 1: Render.com (PIÙ SEMPLICE)
+1. Vai su **[render.com](https://render.com)** → Sign Up (gratis, no carta)
+2. Click **New** → **Web Service**
+3. Connetti GitHub → seleziona `bogaug/swiss-job-hunter`
+4. Render rileva `render.yaml` automaticamente → **Create Web Service**
+5. ✅ Dopo ~2 minuti hai l'URL: `https://swiss-job-hunter-XXXX.onrender.com`
 
-**Pro:** Deploy automatico da GitHub, nessun comando da terminale
-**Contro:** Server si spegne dopo 15 min inattività (si riavvia al primo accesso, ~30 sec)
+**Aggiungi le tue API keys** (click su "Environment" nel dashboard):
+- `GROQ_API_KEY` → [console.groq.com](https://console.groq.com)
+- `ADZUNA_APP_ID` → [developer.adzuna.com](https://developer.adzuna.com)
+- `ADZUNA_APP_KEY` → idem
 
-### Passi:
-
-1. **Vai su [render.com](https://render.com)** → Sign up con GitHub
-2. **New +** → **Web Service**
-3. **Connect repository:** seleziona `bogaug/swiss-job-hunter`
-4. Configurazione automatica (Render legge `render.yaml`)
-5. Clicca **"Create Web Service"**
-6. Aspetta 2-3 minuti → otterrai un URL tipo:
-   ```
-   https://swiss-job-hunter.onrender.com
-   ```
-
-7. **Apri l'URL sul telefono** → Chrome → Menu ⋮ → **"Installa app"**
-
-✅ Fatto! L'app si aggiorna automaticamente ad ogni push su GitHub.
+**Limiti free tier:**
+- ✅ Sempre online, HTTPS automatico
+- ⚠️ Si addormenta dopo 15 min inattività (primo caricamento ~30 sec poi veloce)
+- ✅ 750 ore/mese gratis
 
 ---
 
-## ✅ Opzione 2: Railway.app (SEMPRE ATTIVO)
+## ⚡ Opzione 2: Railway.app (Più veloce)
 
-**Pro:** Server sempre attivo, velocissimo
-**Contro:** 500 ore/mese gratis (~16 ore/giorno), poi $5/mese
-
-### Passi:
-
-1. **Installa Railway CLI:**
-   ```bash
-   npm install -g @railway/cli
-   ```
-
-2. **Login e deploy:**
-   ```bash
-   cd swiss-job-hunter
-   railway login
-   railway init
-   railway up
-   ```
-
-3. **Ottieni l'URL pubblico:**
-   ```bash
-   railway domain
-   ```
-   
-   Ti dà un URL tipo: `swiss-job-hunter-production.up.railway.app`
-
-4. **Apri sul telefono** → installa come PWA
-
----
-
-## ✅ Opzione 3: Fly.io (500 ORE/MESE GRATIS)
-
-**Pro:** Sempre attivo, datacenter EU (Amsterdam)
-**Contro:** Richiede carta di credito (non viene addebitato nulla)
-
-### Passi:
-
-1. **Installa Fly CLI:**
-   ```bash
-   # Mac
-   brew install flyctl
-   
-   # Linux
-   curl -L https://fly.io/install.sh | sh
-   
-   # Windows
-   powershell -Command "iwr https://fly.io/install.ps1 -useb | iex"
-   ```
-
-2. **Signup e deploy:**
-   ```bash
-   cd swiss-job-hunter
-   fly auth signup
-   fly launch --no-deploy
-   # Seleziona: Amsterdam (ams), conferma tutto
-   fly deploy
-   ```
-
-3. **L'URL sarà:**
-   ```
-   https://swiss-job-hunter.fly.dev
-   ```
-
----
-
-## 🆓 Opzione 4: Vercel (LIMITI STRETTI)
-
-**Pro:** Deploy istantaneo, sempre attivo
-**Contro:** Non supporta API persistenti (solo serverless), database SQLite non funziona
-
-❌ **Non consigliato** per questa app (serve database persistente)
-
----
-
-## 🎯 Quale scegliere?
-
-| Piattaforma | Tempo setup | Sempre attivo | Database | Consigliato per |
-|---|---|---|---|---|
-| **Render.com** | ⭐⭐⭐⭐⭐ 2 min | ❌ (dorme) | ✅ | Uso personale |
-| **Railway.app** | ⭐⭐⭐⭐ 5 min | ✅ 500h/mese | ✅ | Uso frequente |
-| **Fly.io** | ⭐⭐⭐ 10 min | ✅ 500h/mese | ✅ | Produzione |
-
----
-
-## 📲 Dopo il deploy
-
-1. Apri l'URL sul tuo **Android** con **Chrome**
-2. Menu **⋮** → **"Aggiungi a schermata Home"**
-3. L'icona 🇨🇭 apparirà sulla home
-4. L'app funziona come un'app nativa:
-   - ✅ Offline (dopo prima apertura)
-   - ✅ Notifiche (se abilitate)
-   - ✅ Fullscreen
-   - ✅ Veloce come app nativa
-
----
-
-## 🔧 Variabili d'ambiente
-
-Per configurare API keys sul server (sicuro, non visibili nel codice):
-
-**Render.com:**
-Dashboard → Environment → Add Variable:
-```
-GROQ_API_KEY=gsk_...
-ADZUNA_APP_ID=...
-ADZUNA_APP_KEY=...
-```
-
-**Railway:**
 ```bash
-railway variables set GROQ_API_KEY=gsk_...
+# Install Railway CLI
+npm install -g @railway/cli
+
+# Login e deploy
+railway login
+cd swiss-job-hunter
+railway init
+railway up
 ```
 
-**Fly.io:**
+**Aggiungi variabili:**
 ```bash
-fly secrets set GROQ_API_KEY=gsk_...
+railway variables set GROQ_API_KEY=gsk_xxx
+railway variables set ADZUNA_APP_ID=xxx
+railway variables set ADZUNA_APP_KEY=xxx
 ```
+
+**Limiti free tier:**
+- ✅ $5/mese crediti gratis (~500 ore)
+- ✅ Più veloce (no cold start)
 
 ---
 
-## 🚀 La mia raccomandazione
+## ⚡ Opzione 3: Fly.io
 
-**Per te consiglio Render.com:**
-- ✅ 2 minuti di setup (zero comandi)
-- ✅ Deploy automatico ad ogni push GitHub
-- ✅ Database SQLite persistente
-- ✅ HTTPS gratuito
-- ✅ Nessuna carta richiesta
+```bash
+# Install flyctl
+curl -L https://fly.io/install.sh | sh
 
-Il fatto che si spenga dopo 15 min è OK — si risveglia in ~30 secondi al primo accesso.
+# Deploy
+cd swiss-job-hunter
+fly launch --name swiss-job-hunter
+fly deploy
+```
+
+**Limiti free tier:**
+- ✅ 3 app gratuite
+- ✅ Cold start minimo
+
+---
+
+## 📱 Installazione PWA su Android
+
+Dopo il deploy, dal telefono:
+
+1. **Chrome** → vai al tuo URL (es: `https://swiss-job-hunter.onrender.com`)
+2. Menu **⋮** (3 pallini) → **"Aggiungi a schermata Home"** / **"Installa app"**
+3. ✅ L'icona 🇨🇭 appare sulla home — funziona come app nativa!
+
+**Features:**
+- ✅ Funziona offline (dopo prima apertura)
+- ✅ Notifiche push (opzionale)
+- ✅ Navigazione nativa Android
+- ✅ Nessun App Store necessario
+
+---
+
+## 🔐 Sicurezza database
+
+Il database SQLite è salvato nel filesystem del container. Per persistenza garantita usa:
+
+**Render:** aggiungi un [Render Disk](https://render.com/docs/disks) (gratis fino a 1GB)
+**Railway:** i [Volumes](https://docs.railway.app/guides/volumes) sono inclusi
+**Fly:** usa [Fly Volumes](https://fly.io/docs/reference/volumes/)
+
+Altrimenti il DB si resetta al redeploy (ok per test, non per produzione).
