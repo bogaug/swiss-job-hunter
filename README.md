@@ -158,3 +158,58 @@ MIT License — free for personal and commercial use.
 ---
 
 *Built with ❤️ for the Swiss job market*
+
+---
+
+## 📱 Deploy gratuito per smartphone (Android/iOS)
+
+L'app include una **Progressive Web App (PWA)** installabile su qualsiasi smartphone.
+
+### 🆓 Opzione 1: Render.com (Raccomandato — sempre gratis)
+
+1. Vai su **[render.com](https://render.com)** → Sign up con GitHub
+2. **New** → **Web Service**
+3. Seleziona il repo `bogaug/swiss-job-hunter`
+4. Render rileva automaticamente `render.yaml` → **Create Web Service**
+5. Ottieni URL pubblico: `https://swiss-job-hunter.onrender.com`
+
+**Sul tuo smartphone:**
+- Apri **Chrome** (Android) o **Safari** (iOS)
+- Vai all'URL ricevuto
+- **Android**: Menu ⋮ → "Installa app"
+- **iOS**: Condividi → "Aggiungi a Home"
+- Icona 🇨🇭 sulla schermata home → funziona offline come app nativa!
+
+**Piano gratuito:** 750 ore/mese (= sempre disponibile). L'app va in sleep dopo 15 min inattività, si risveglia in ~30 secondi al primo accesso.
+
+---
+
+### ⚡ Opzione 2: Railway.app
+
+```bash
+npm install -g @railway/cli
+railway login
+cd swiss-job-hunter
+railway init
+railway up
+```
+
+**$5 credito gratuito/mese** — più che sufficiente per questa app.
+
+---
+
+### 🏠 Opzione 3: Locale (solo rete WiFi casalinga)
+
+**Mac/Linux:**
+```bash
+./start-pwa.sh
+```
+
+**Windows:**
+```bash
+start-pwa.bat
+```
+
+Accedi dall'URL mostrato (es: `http://192.168.1.100:8000`) — PC e telefono devono essere sulla stessa rete WiFi.
+
+---
